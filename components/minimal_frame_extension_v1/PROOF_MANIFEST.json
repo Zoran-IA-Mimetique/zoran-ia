@@ -1,7 +1,7 @@
 {
   "object_id": "ZORAN-BRICK-MIN-FRAME-EXT-V1",
   "meta_id": "ZORAN-META-FRAME-MOTION-2026-08-24",
-  "version": "1.1-candidate",
+  "version": "1.2-candidate",
   "date": "2026-08-24",
   "status": "CANDIDATE_NON_CERTIFIE",
   "branch": "codex/minimal-frame-extension-v1",
@@ -15,15 +15,17 @@
   "added_stitch": {
     "object_id": "ZORAN-BRICK-FRAME-SEARCH-STITCH-V1",
     "meta_id": "ZORAN-META-FRAME-MOTION-SEARCH-2026-08-24",
-    "pipeline": "K3_FRAME_VERDICTS -> BLOCKING_BOUNDARY -> SOURCE_SEALED_FRAME_OBSERVATIONS -> DETERMINISTIC_EVALUATIONS -> MINIMAL_FRAME_EXTENSION",
+    "pipeline": "K3_FRAME_VERDICTS -> PROVEN_BLOCKING_BOUNDARY -> SOURCE_SEALED_FRAME_OBSERVATIONS -> DETERMINISTIC_EVALUATIONS -> MINIMAL_FRAME_EXTENSION",
     "semantic_engine_authority": false,
     "external_source_authority": false,
-    "source_sha256_required": true
+    "source_sha256_required": true,
+    "relation_evidence_required": true,
+    "multiple_fail_requires_saturation_order_proof": true
   },
   "tests": {
     "minimal_extension_local_unit": {"pass": 7, "fail": 0},
-    "frame_search_stitch_local_unit": {"pass": 10, "fail": 0},
-    "construction_runs_total": {"pass": 17, "fail": 0},
+    "frame_search_stitch_local_unit": {"pass": 11, "fail": 0},
+    "construction_runs_total": {"pass": 18, "fail": 0},
     "single_checkout_full_suite": "NON_MESURE",
     "global_runtime_replay": "NON_MESURE",
     "massive_adversarial": "NON_MESURE",
@@ -41,7 +43,9 @@
     "global_impossibility_requires_exhaustion_proof": true,
     "candidate_discovery_has_no_decision_authority": true,
     "non_mesure_boundary_cannot_trigger_frame_invention": true,
-    "external_observation_requires_source_sha256": true
+    "external_observation_requires_source_sha256": true,
+    "external_observation_requires_relation_evidence": true,
+    "multiple_fail_without_saturation_proof_returns_non_mesure": true
   },
   "rollback": {
     "mode": "reject_or_delete_candidate_branch",
