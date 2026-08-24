@@ -1,20 +1,33 @@
 {
   "object_id": "ZORAN-BRICK-MIN-FRAME-EXT-V1",
   "meta_id": "ZORAN-META-FRAME-MOTION-2026-08-24",
-  "version": "1.0-candidate",
+  "version": "1.1-candidate",
   "date": "2026-08-24",
   "status": "CANDIDATE_NON_CERTIFIE",
   "branch": "codex/minimal-frame-extension-v1",
   "source_evidence": [
     "zorania2025/Zoran-IA-deteriniste:components/k3_frame_algebra_v1_1/moteur_algebre_cadres.py:cout_de_contrainte",
-    "zorania2025/Zoran-IA-deteriniste:components/nl_k3_boundary_v1/boundary.py"
+    "zorania2025/Zoran-IA-deteriniste:components/nl_k3_boundary_v1/boundary.py",
+    "zorania2025/Zoran-IA-deteriniste:components/complex_nl_intent_v1/intent.py:to_k3_frame_candidates",
+    "zorania2025/Zoran-IA-deteriniste:SEMANTIC_ENGINE_POLICY_V1.md",
+    "zorania2025/Zoran-IA-deteriniste:components/zoran_chat_runtime_v1/runtime.py:evaluate_required_frames"
   ],
+  "added_stitch": {
+    "object_id": "ZORAN-BRICK-FRAME-SEARCH-STITCH-V1",
+    "meta_id": "ZORAN-META-FRAME-MOTION-SEARCH-2026-08-24",
+    "pipeline": "K3_FRAME_VERDICTS -> BLOCKING_BOUNDARY -> SOURCE_SEALED_FRAME_OBSERVATIONS -> DETERMINISTIC_EVALUATIONS -> MINIMAL_FRAME_EXTENSION",
+    "semantic_engine_authority": false,
+    "external_source_authority": false,
+    "source_sha256_required": true
+  },
   "tests": {
-    "local_unit_tests": 7,
-    "local_unit_pass": 7,
-    "local_unit_fail": 0,
+    "minimal_extension_local_unit": {"pass": 7, "fail": 0},
+    "frame_search_stitch_local_unit": {"pass": 10, "fail": 0},
+    "construction_runs_total": {"pass": 17, "fail": 0},
+    "single_checkout_full_suite": "NON_MESURE",
     "global_runtime_replay": "NON_MESURE",
     "massive_adversarial": "NON_MESURE",
+    "live_external_search": "NON_MESURE",
     "multiframe_global_benefit": "NON_MESURE",
     "s_gt_9": "NON_MESURE"
   },
@@ -25,7 +38,10 @@
     "regression_blocks": true,
     "causal_evidence_required": true,
     "falsifier_required": true,
-    "global_impossibility_requires_exhaustion_proof": true
+    "global_impossibility_requires_exhaustion_proof": true,
+    "candidate_discovery_has_no_decision_authority": true,
+    "non_mesure_boundary_cannot_trigger_frame_invention": true,
+    "external_observation_requires_source_sha256": true
   },
   "rollback": {
     "mode": "reject_or_delete_candidate_branch",
