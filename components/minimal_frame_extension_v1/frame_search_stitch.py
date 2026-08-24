@@ -26,6 +26,7 @@ class FrameObservation:
     source_id: str
     source_sha256: str
     relieves_constraints: tuple[str, ...]
+    relation_evidence_ids: tuple[str, ...]
     complexity_cost: int
 
 
@@ -50,7 +51,12 @@ def _valid_sha(value: str) -> str:
     return value
 
 
-def detect_blocking_boundary(frame_verdicts: Mapping[str, str]) -> dict:
+def detect_blocking_boundary(
+    frame_verdicts: Mapping[str, str],
+    *,
+    saturation_order: Sequence[str] = (),
+    saturation_evidence_ids: Sequence[str] = (),
+) -> dict:
     if not isinstance(frame_verdicts, Mapping) or not frame_verdicts:
         raise FrameSearchStitchError("frame_verdicts non vide requis")
     normalized: dict[str, str] = {}
@@ -62,8 +68,21 @@ def detect_blocking_boundary(frame_verdicts: Mapping[str, str]) -> dict:
 
     failures = sorted(frame_id for frame_id, verdict in normalized.items() if verdict == FAIL)
     unknowns = sorted(frame_id for frame_id, verdict in normalized.items() if verdict == NON_MESURE)
-    if failures:
+    order = tuple(saturation_order)
+    evidence = tuple(sorted(set(saturation_evidence_ids)))
+    if any(not isinstance(item, str) or not item.strip() for item in order + evidence):
+        raise FrameSearchStitchError("preuve/ordre de saturation invalide")
+
+    ambiguity = None
+    if len(failures) == 1:
         status, blocker = FAIL, failures[0]
+    elif len(failures) > 1:
+        ordered_failures = [frame_id for frame_id in order if frame_id in failures]
+        if evidence and ordered_failures and set(failures).issubset(set(order)):
+            status, blocker = FAIL, ordered_failures[0]
+        else:
+            status, blocker = NON_MESURE, None
+            ambiguity = "MULTIPLE_FAIL_NO_SATURATION_PROOF"
     elif unknowns:
         status, blocker = NON_MESURE, unknowns[0]
     else:
@@ -77,8 +96,11 @@ def detect_blocking_boundary(frame_verdicts: Mapping[str, str]) -> dict:
         "blocking_frame_id": blocker,
         "all_failures": failures,
         "all_unknowns": unknowns,
+        "saturation_order": list(order),
+        "saturation_evidence_ids": list(evidence),
+        "ambiguity": ambiguity,
         "frame_verdicts": dict(sorted(normalized.items())),
-        "selection_policy": "FAIL_FIRST_THEN_NON_MESURE_LEXICAL",
+        "selection_policy": "SINGLE_FAIL_OR_PROVEN_SATURATION_ORDER_FAIL_CLOSED",
     }
     return {**payload, "boundary_sha256": _digest(payload)}
 
@@ -86,10 +108,13 @@ def detect_blocking_boundary(frame_verdicts: Mapping[str, str]) -> dict:
 def discover_candidate_frames(boundary: Mapping[str, object], observations: Sequence[FrameObservation]) -> dict:
     blocker = boundary.get("blocking_frame_id")
     status = boundary.get("status")
-    candidates: list[dict] = []
-
-    if status == FAIL:
-        blocker = _valid_id(blocker, "blocking_frame_id")
+    if status == PASS:
+        candidates = []
+    elif status == NON_MESURE:
+        candidates = []
+    elif status == FAIL:
+        _valid_id(blocker, "blocking_frame_id")
+        candidates = []
         for observation in observations:
             frame_id = _valid_id(observation.frame_id, "frame_id")
             parent_frame_id = _valid_id(observation.parent_frame_id, "parent_frame_id")
@@ -100,8 +125,11 @@ def discover_candidate_frames(boundary: Mapping[str, object], observations: Sequ
             if isinstance(observation.complexity_cost, bool) or not isinstance(observation.complexity_cost, int) or observation.complexity_cost < 0:
                 raise FrameSearchStitchError("complexity_cost invalide")
             relieves = tuple(sorted(set(observation.relieves_constraints)))
+            relation_evidence_ids = tuple(sorted(set(observation.relation_evidence_ids)))
             if any(not isinstance(item, str) or not item.strip() for item in relieves):
                 raise FrameSearchStitchError("relieves_constraints invalide")
+            if not relation_evidence_ids or any(not isinstance(item, str) or not item.strip() for item in relation_evidence_ids):
+                raise FrameSearchStitchError("relation_evidence_ids requis")
             if blocker in relieves:
                 candidates.append({
                     "frame_id": frame_id,
@@ -109,13 +137,14 @@ def discover_candidate_frames(boundary: Mapping[str, object], observations: Sequ
                     "source_id": source_id,
                     "source_sha256": source_sha256,
                     "relieves_constraints": list(relieves),
+                    "relation_evidence_ids": list(relation_evidence_ids),
                     "complexity_cost": observation.complexity_cost,
                     "discovery_authority": False,
                 })
-    elif status not in {PASS, NON_MESURE}:
+        candidates.sort(key=lambda item: (item["complexity_cost"], item["frame_id"], item["source_sha256"]))
+    else:
         raise FrameSearchStitchError("boundary.status invalide")
 
-    candidates.sort(key=lambda item: (item["complexity_cost"], item["frame_id"], item["source_sha256"]))
     semantic = {
         "object_id": OBJECT_ID,
         "meta_id": META_ID,
@@ -130,7 +159,7 @@ def discover_candidate_frames(boundary: Mapping[str, object], observations: Sequ
 
 
 def build_extension_candidates(discovery: Mapping[str, object], deterministic_evaluations: Mapping[str, Mapping[str, object]]) -> dict:
-    out: list[dict] = []
+    out = []
     for candidate in discovery.get("candidate_frames", []):
         frame_id = candidate["frame_id"]
         evaluation = deterministic_evaluations.get(frame_id)
@@ -146,7 +175,6 @@ def build_extension_candidates(discovery: Mapping[str, object], deterministic_ev
         }
         if not required.issubset(evaluation):
             continue
-
         verdicts = [evaluation["target_constraint_verdict"]]
         for field in ("preserved_frames", "peer_frames", "superior_benefits"):
             values = evaluation[field]
@@ -155,12 +183,10 @@ def build_extension_candidates(discovery: Mapping[str, object], deterministic_ev
             verdicts.extend(values.values())
         if any(verdict not in K3 for verdict in verdicts):
             raise FrameSearchStitchError("évaluation déterministe contient un verdict K3 invalide")
-
         causal_evidence_ids = tuple(sorted(set(evaluation["causal_evidence_ids"])))
         falsifier_ids = tuple(sorted(set(evaluation["falsifier_ids"])))
         if not causal_evidence_ids or not falsifier_ids:
             continue
-
         out.append({
             "frame_id": frame_id,
             "parent_frame_id": candidate["parent_frame_id"],
@@ -174,7 +200,6 @@ def build_extension_candidates(discovery: Mapping[str, object], deterministic_ev
             "source_id": candidate["source_id"],
             "source_sha256": candidate["source_sha256"],
         })
-
     out.sort(key=lambda item: (item["complexity_cost"], item["frame_id"], item["source_sha256"]))
     semantic = {
         "object_id": OBJECT_ID,
