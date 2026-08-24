@@ -1,0 +1,34 @@
+{
+  "object_id": "ZORAN-BRICK-MIN-FRAME-EXT-V1",
+  "meta_id": "ZORAN-META-FRAME-MOTION-2026-08-24",
+  "version": "1.0-candidate",
+  "date": "2026-08-24",
+  "status": "CANDIDATE_NON_CERTIFIE",
+  "branch": "codex/minimal-frame-extension-v1",
+  "source_evidence": [
+    "zorania2025/Zoran-IA-deteriniste:components/k3_frame_algebra_v1_1/moteur_algebre_cadres.py:cout_de_contrainte",
+    "zorania2025/Zoran-IA-deteriniste:components/nl_k3_boundary_v1/boundary.py"
+  ],
+  "tests": {
+    "local_unit_tests": 7,
+    "local_unit_pass": 7,
+    "local_unit_fail": 0,
+    "global_runtime_replay": "NON_MESURE",
+    "massive_adversarial": "NON_MESURE",
+    "multiframe_global_benefit": "NON_MESURE",
+    "s_gt_9": "NON_MESURE"
+  },
+  "guards": {
+    "fail_closed": true,
+    "missing_frame_blocks": true,
+    "non_mesure_blocks": true,
+    "regression_blocks": true,
+    "causal_evidence_required": true,
+    "falsifier_required": true,
+    "global_impossibility_requires_exhaustion_proof": true
+  },
+  "rollback": {
+    "mode": "reject_or_delete_candidate_branch",
+    "main_modified": false
+  }
+}
